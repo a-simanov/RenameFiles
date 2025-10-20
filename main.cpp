@@ -3,12 +3,13 @@
 #include <string>
 #include <functional>
 
-#if defined(WIN32)
+#if defined(WIN32) || defined(WIN64)
     #include <direct.h>
-#elif defined(WIN64)
-    #include <direct.h>
+    #include <io.h>
+    #include <fcntl.h>
 #elif defined(linux)
     #include <unistd.h>
+    #include <locale>
 #endif
 
 using namespace std;
@@ -18,42 +19,42 @@ path operator""_p(const char* data, std::size_t sz) {
     return path(data, data + sz);
 }
 
-void SearchFile(const filesystem::directory_entry& dir_entry, const string& str) {
-    string old_name = dir_entry.path().string();
+void SearchFile(const filesystem::directory_entry& dir_entry, const wstring& str) {
+    wstring old_name = dir_entry.path().wstring();
     if (old_name.find(str) != string::npos) {
-        cout << "File find: " << filesystem::absolute(dir_entry.path()) ;
+        wcout << "File find: " << filesystem::absolute(dir_entry.path()).wstring() << "\n";
     }
 }
 
-void DeletePrefix(const filesystem::directory_entry& dir_entry, const string& str) {
-    string old_name = dir_entry.path().string();
+void DeletePrefix(const filesystem::directory_entry& dir_entry, const wstring& str) {
+    wstring old_name = dir_entry.path().wstring();
     if (old_name.find(str) != string::npos) {
-        string new_name = old_name;
+        wstring new_name = old_name;
         new_name.erase(old_name.find(str), str.length());
         try {
             filesystem::rename(old_name, new_name);
         } catch (const filesystem::filesystem_error& e) {
-            cerr << "Can't rename file " << old_name << " " << e.what();
+            cerr << e.what() << "\n";
         }
     }
 }
 
-void AddPrefix(const filesystem::directory_entry& dir_entry, const string& str) {
-    string old_path = dir_entry.path().string();
-    string old_name = dir_entry.path().filename().string();
-    string old_abs = old_path;
+void AddPrefix(const filesystem::directory_entry& dir_entry, const wstring& str) {
+    wstring old_path = dir_entry.path().wstring();
+    wstring old_name = dir_entry.path().filename().wstring();
+    wstring old_abs = old_path;
     old_abs.erase(old_path.find(old_name));
-    string new_name = old_abs + str + "_" + old_name;
+    wstring new_name = old_abs + str + L"_" + old_name;
     try {
         filesystem::rename(old_path, new_name);
     } catch (const filesystem::filesystem_error& e) {
-        cerr << "Can't rename file " << old_name << " " << e.what();
+        cerr << e.what() << "\n";
     }
 }
 
-using Func = function<void(const filesystem::directory_entry& dir_entry, const string& str)>;
+using Func = function<void(const filesystem::directory_entry& dir_entry, const wstring& str)>;
 
-void DirectoryTraversal (const string& exec, const path& p, const filesystem::file_status& status, const string& str, Func& func) {
+void DirectoryTraversal (const string& exec, const path& p, const filesystem::file_status& status, const wstring& str, Func& func) {
     if (status.type() == filesystem::file_type::directory) {
         for (const auto& dir_entry: filesystem::directory_iterator(p)) {
             if (dir_entry.status().type() == filesystem::file_type::directory) {
@@ -67,29 +68,42 @@ void DirectoryTraversal (const string& exec, const path& p, const filesystem::fi
 }
 
 int main(int argc, char** argv) {
-    string response;
+    #if defined(WIN32) || defined(WIN64)
+        _setmode(_fileno(stdout), _O_U16TEXT);
+        _setmode(_fileno(stdin),  _O_U16TEXT);
+        _setmode(_fileno(stderr), _O_U16TEXT);
+    #elif defined(linux)
+        setlocale(LC_ALL, "ru_RU.UTF-8");
+    #endif
 
-    cout << "If you want find file enter 1\n" <<
+    wstring response;
+    wcout << "If you want find file enter 1\n" <<
         "If you want delete prefix in files name enter 2\n" <<
         "If you want add prefix in all files name enter 3\n";
-    const size_t size = 1024;
-    char buffer[size];
-    getcwd(buffer, size);
-    const path& p = buffer;
-    string path = p.filename().string();
-    string exec_path = *argv;
-    string exec_file = exec_path.substr(exec_path.find_last_of("\\") + 1);
-    Func func;
-    while(cin >> response) {
-        string response_str;
-        if (response == "1") {
+    while (wcin) {
+        wcin >> response;
+        const size_t size = 1024;
+        char buffer[size];
+        getcwd(buffer, size);
+        const path& p = buffer;
+        string exec_path = *argv;
+        string exec_file = exec_path.substr(exec_path.find_last_of("\\") + 1);
+        Func func;
+        wstring response_str;
+        if (response == L"1") {
+            wcout << "Enter string to search: ";
             func = SearchFile;
-        } else if (response == "2") {
+            wcout << "\n";
+        } else if (response == L"2") {
+            wcout << "Enter string to delete: ";
             func = DeletePrefix;
-        } else if (response == "3") {
+            wcout << "\n";
+        } else if (response == L"3") {
+            wcout << "Enter prefix to add: ";
             func = AddPrefix;
+            wcout << "\n";
         }
-        cin >> response_str;
+        wcin >> response_str;
         DirectoryTraversal(exec_file, p, filesystem::status(p), response_str, func);
     }
 }
