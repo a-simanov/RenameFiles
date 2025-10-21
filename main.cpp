@@ -2,13 +2,13 @@
 #include <iostream>
 #include <string>
 #include <functional>
+#include <unistd.h>
 
 #if defined(WIN32) || defined(WIN64)
     #include <direct.h>
     #include <io.h>
     #include <fcntl.h>
-#elif defined(linux)
-    #include <unistd.h>
+#elif defined(linux)    
     #include <locale>
 #endif
 
