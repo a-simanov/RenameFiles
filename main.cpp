@@ -2,14 +2,17 @@
 #include <iostream>
 #include <string>
 #include <functional>
-#include <unistd.h>
 
-#if defined(WIN32) || defined(WIN64)
+
+
+#ifdef _WIN32
+    #include <windows.h>
     #include <direct.h>
     #include <io.h>
     #include <fcntl.h>
-#elif defined(linux)    
+#elif __linux__
     #include <locale>
+    #include <unistd.h>
 #endif
 
 using namespace std;
