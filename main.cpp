@@ -5,13 +5,12 @@
 
 
 
-#ifdef _WIN32
+#ifdef defined(WIN32) || defined(WIN64)
     #include <windows.h>
     #include <direct.h>
     #include <io.h>
     #include <fcntl.h>
-#elif __linux__
-    #include <locale>
+#elif defined(linux)
     #include <unistd.h>
 #endif
 
@@ -71,26 +70,28 @@ void DirectoryTraversal (const string& exec, const path& p, const filesystem::fi
 }
 
 int main(int argc, char** argv) {
+    const size_t size = 1024;
+    char buffer[size];
+    getcwd(buffer, size);
+
     #if defined(WIN32) || defined(WIN64)
         _setmode(_fileno(stdout), _O_U16TEXT);
         _setmode(_fileno(stdin),  _O_U16TEXT);
         _setmode(_fileno(stderr), _O_U16TEXT);
+        _getcwd(buffer, size);
     #elif defined(linux)
         setlocale(LC_ALL, "ru_RU.UTF-8");
+        getcwd(buffer, size);
     #endif
-
+    const path& p = buffer;
+    string exec_path = *argv;
+    string exec_file = exec_path.substr(exec_path.find_last_of("\\") + 1);
     wstring response;
     wcout << "If you want find file enter 1\n" <<
         "If you want delete prefix in files name enter 2\n" <<
         "If you want add prefix in all files name enter 3\n";
-    while (wcin) {
+    while (true) {
         wcin >> response;
-        const size_t size = 1024;
-        char buffer[size];
-        getcwd(buffer, size);
-        const path& p = buffer;
-        string exec_path = *argv;
-        string exec_file = exec_path.substr(exec_path.find_last_of("\\") + 1);
         Func func;
         wstring response_str;
         if (response == L"1") {
